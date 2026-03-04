@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Line Dodge Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let player = {
+    width: 40,
+    height: 40,
+    x: canvas.width / 2 - 20,
+    y: canvas.height - 80,
+    speed: 7
+};
+
+let lines = [];
+let score = 0;
+let highScore = localStorage.getItem("highScore") || 0;
+let gameOver = false;
+
+let keys = {};
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function spawnLine() {
+    let width = Math.random() * (canvas.width * 0.6) + 100;
+    lines.push({
+        x: Math.random() * (canvas.width - width),
+        y: -20,
+        width: width,
+        height: 20, // about 1–2 inches visually depending on screen
+        speed: 4 + Math.random() * 2
+    });
+}
+
+function resetGame() {
+    lines = [];
+    score = 0;
+    player.x = canvas.width / 2 - 20;
+    gameOver = false;
+}
+
+function update() {
+    if (gameOver) return;
+
+    if (keys["ArrowLeft"] && player.x > 0)
+        player.x -= player.speed;
+    if (keys["ArrowRight"] && player.x < canvas.width - player.width)
+        player.x += player.speed;
+
+    lines.forEach(line => {
+        line.y += line.speed;
+
+        // Collision
+        if (
+            player.x < line.x + line.width &&
+            player.x + player.width > line.x &&
+            player.y < line.y + line.height &&
+            player.y + player.height > line.y
+        ) {
+            gameOver = true;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore);
+            }
+        }
+    });
+
+    lines = lines.filter(line => line.y < canvas.height);
+
+    score++;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Player
+    ctx.fillStyle = "black";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    // Lines
+    lines.forEach(line => {
+        ctx.fillRect(line.x, line.y, line.width, line.height);
+    });
+
+    // Score
+    ctx.fillStyle = "black";
+    ctx.font = "24px Arial";
+    ctx.fillText("Score: " + score, 20, 40);
+    ctx.fillText("High Score: " + highScore, 20, 70);
+
+    if (gameOver) {
+        ctx.font = "48px Arial";
+        ctx.fillText("Game Over", canvas.width / 2 - 140, canvas.height / 2);
+        ctx.font = "24px Arial";
+        ctx.fillText("Press R to Restart", canvas.width / 2 - 110, canvas.height / 2 + 40);
+    }
+}
+
+document.addEventListener("keydown", e => {
+    if (e.key === "r" && gameOver) {
+        resetGame();
+    }
+});
+
+setInterval(spawnLine, 1200);
+
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
